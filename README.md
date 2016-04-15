@@ -1,0 +1,2 @@
+# lpc1754_mpu6050_project
+lpc1754_mpu6050 project
