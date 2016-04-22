@@ -29,7 +29,6 @@ extern int16_t DestRule[3][RULE_NUM_MAX][2];
 extern uint16_t ruleGroupNum;
 extern int16_t matchedRotateAngle[3]; //record the last matched angle in set-mode
 extern uint8_t matchStage[3];
-extern uint8_t isNewStage;
 
 
 void MPU6050Init(void);

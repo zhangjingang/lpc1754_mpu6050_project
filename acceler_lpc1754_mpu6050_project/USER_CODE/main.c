@@ -29,7 +29,6 @@ uint16_t ruleGroupNum = 0;	//the Number of the game rule(NOTE:one group rule inc
 							//which one data indicates direction, and the other indicates angle)
 int16_t DestRule[3][RULE_NUM_MAX][2];//game rule of every axis
 
-uint8_t isNewStage = 0;
 
 /********************************************************************************************************
  Inner Variables
@@ -182,10 +181,10 @@ static void AccessSetMode(void)
 		if (1 == bsp_CheckTimer(2))
 		{
 			//if no rotatioin within 2 seconds,	do nothing.
-			if ((matchStage[2] == 0) || (ABS(matchedRotateAngle[2]) <= SET_MIN_ANGLE))
+			if (ABS(matchedRotateAngle[2]) <= SET_MIN_ANGLE)//BUG: matchedRotateAngle[2] maybe nagetive value
 			{
 				bsp_StartTimer(2, 2000);
-				debug_printf("if no rotatioin within 2 seconds,	do nothing.\n"); 
+				debug_printf("No rotatioin in 2 seconds.\n"); 
 				continue;
 			}
 
@@ -198,11 +197,10 @@ static void AccessSetMode(void)
 #endif
 
 			//TODO:save one rule group data.including directoin and rotated angle.
-			DestRule[2][matchStage[2]-1][0] = matchedRotateAngle[2] >= 0 ? 1 : -1;
-			DestRule[2][matchStage[2]-1][1] = matchedRotateAngle[2];
+			DestRule[2][matchStage[2]][0] = matchedRotateAngle[2] >= 0 ? 1 : -1;
+			DestRule[2][matchStage[2]][1] = matchedRotateAngle[2];
 			ruleGroupNum = matchStage[2]++;
 			matchedRotateAngle[2] = 0;
-			isNewStage = 1;
 
 
 			//最后一个rule达到指定角度后的情况处理
@@ -229,8 +227,8 @@ static void AccessSetMode(void)
 	//save the last game group info if there is no rotate within ten seconds
 	if (matchedRotateAngle[2] > SET_MIN_ANGLE)
 	{
-		DestRule[2][ruleGroupNum][0] = DestRule[2][ruleGroupNum-1][0] > 0 ? -1 : 1;
-		DestRule[2][ruleGroupNum][1] = matchedRotateAngle[2];
+		DestRule[2][matchStage[2]][0] = matchedRotateAngle[2] > 0 ? -1 : 1;
+		DestRule[2][matchStage[2]][1] = matchedRotateAngle[2];
 		ruleGroupNum++;	
 	}
 

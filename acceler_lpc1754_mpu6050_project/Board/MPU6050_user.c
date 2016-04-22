@@ -306,7 +306,7 @@ void HandleMPU6050Data3(struct axis_attr *mpu6050dat)
 {
 	uint8_t i;
 	int16_t tempAngle;
-	static int16_t startDirect[RULE_NUM_MAX];
+
 
 	UpdateMPU6050Data(mpu6050dat);
 
@@ -336,32 +336,12 @@ void HandleMPU6050Data3(struct axis_attr *mpu6050dat)
 
 		//---启动规则---
 
-		//规则启动的条件
-		if (matchStage[i] == 0)
-		{
-			startDirect[0] = mpu6050dat[i].rotateDirect;
-			matchStage[i] = 1;	 
-		}
-
-		if (isNewStage)
-		{
-			isNewStage = 0;
-			startDirect[matchStage[i]] = mpu6050dat[i].rotateDirect;
-		}
-
 		//各个阶段的规则处理
-		if (matchStage[i] > 0)
 		{
 			tempAngle = CalcIntervalAngle(mpu6050dat[i].currentAngle, mpu6050dat[i].lastAngle);
 
-			if (mpu6050dat[i].rotateDirect == startDirect[matchStage[i]])//同向旋转情况处理
-			{
-				matchedRotateAngle[i] += ABS(tempAngle);	
-			}
-			else //反向旋转情况处理
-			{
-				matchedRotateAngle[i] -= ABS(tempAngle);
-			}
+			matchedRotateAngle[i] += tempAngle;	
+
 
 #if CONF_NRF24L01_SND
 				gLen = sprintf((char*)buf, " [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
@@ -370,8 +350,9 @@ void HandleMPU6050Data3(struct axis_attr *mpu6050dat)
 #else
 				debug_printf(" [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
 #endif
-			if ((matchedRotateAngle[i] != 0 ) && (matchedRotateAngle[i] % 90 == 0))//beep every rotate 90 degree
+			if ((matchedRotateAngle[i] != 0 ) && (ABS(matchedRotateAngle[i]) % 90 == 0))//beep every rotate 90 degree
 			{
+				uart_printf("beep-on  100ms!\n");
 				bsp_BeepOn();
 				BspDelayMS(100);
 				bsp_BeepOff();
