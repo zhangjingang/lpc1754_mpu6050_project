@@ -18,7 +18,7 @@ struct axis_attr
 	int16_t rotateSpeed;				//角速度  度/秒
 };
 
-#define ABS(x) ((x) > 0 ? (x) : -(x))
+#define ABS(x) ((x) > 0 ? (x) : (-x))
 
 //!!! Global variables, used in main.c and mpu6050_user.c
 extern struct axis_attr mpuDat[3];//[0],[1],[2]分别代码X(Pitch)，Y(Roll)，Z(Yaw)轴

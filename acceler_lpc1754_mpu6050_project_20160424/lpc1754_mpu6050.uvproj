@@ -610,7 +610,7 @@
             <RestoreToolbox>1</RestoreToolbox>
           </Target>
           <RunDebugAfterBuild>0</RunDebugAfterBuild>
-          <TargetSelection>8</TargetSelection>
+          <TargetSelection>7</TargetSelection>
           <SimDlls>
             <CpuDll></CpuDll>
             <CpuDllArguments></CpuDllArguments>
@@ -634,7 +634,7 @@
             <RunIndependent>0</RunIndependent>
             <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
             <Capability>1</Capability>
-            <DriverSelection>4100</DriverSelection>
+            <DriverSelection>4099</DriverSelection>
           </Flash1>
           <Flash2>Segger\JL2CM3.dll</Flash2>
           <Flash3>"" ()</Flash3>
@@ -820,7 +820,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\Board;.\CM3;.\LPC17xx\Startup;.\Board\mpu6050_dmp;.\USER_CODE</IncludePath>
+              <IncludePath>.\Board;.\CM3;.\LPC17xx;.\USER_CODE;.\Board\mpu6050_dmp</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>

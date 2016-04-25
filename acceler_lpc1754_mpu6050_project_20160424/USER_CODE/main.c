@@ -40,11 +40,10 @@ __align(4) static int16_t tmpSectorData[WRITE_LENGTH];//__align(4) means data in
 Inner function declaration
 *********************************************************************************************************/
 static void Init(void);
-static void AccessSetMode(void);
-static void ReadGameRule(int16_t *pdat, uint16_t *len);
+static void AccessSettingMode(void);
+static void AccessNormalMode(void);
 static void SaveGameRule(int16_t *pdat, uint16_t len);
-
-
+static void ReadGameRule(int16_t *pdat, uint16_t *len);
 
 /*********************************************************************************************************
 ** Function name:       main
@@ -75,41 +74,20 @@ int main (void)
 				BspDelayMS(200);
 			}
 				
-			AccessSetMode();// !!!never return.
+			AccessSettingMode();// !!!never return.
 		}
 			
 		CPU_IDLE();	//let CPU enter into low power mode	
 	}
 
    //normal-mode
-	while(1)
-	{						
-		HandleMPU6050Data(mpuDat);
-#if 0
-		uart_printf(" Pitch=%04d\tRoll=%04d\tYaw=%04d\trunTime=%ldms\n", 
-	   		mpuDat[0].currentAngle, mpuDat[1].currentAngle, mpuDat[2].currentAngle, bsp_GetRunTime());
-#endif
-		for (i = 0; i < 3; i++)
-		{
-			if (passFlag[i] == 1)
-			{
-				passFlag[i] = 0;
+	AccessNormalMode();
 
-				gLen = sprintf((char*)buf, "\t[%d]-Axis Trigger A Signal !\n", i);
-				uart_printf((char*)buf);
-				NRFSndDate(buf, gLen);
-
-				return 1;//stop the App !!!*************************
-			}		
-		}
-
-        BspDelayMS(SCAN_TIME);
-    }
 
 #else
 
 	//NRF24L01 receive data
-	while(1)
+	for(;;)
 	{
 		NRFSetRXMode();
 		len = NRFGetData(buf);
@@ -137,7 +115,7 @@ static void Init (void)
 	uart0Init();    	//115200 8n1
 	uart_printf(MODULE_ROLE);
 	uart_printf("SystemFrequency=[%dHz]  Init System ...\n", SystemFrequency);
-//	bsp_InitBeep();
+	bsp_InitBeep();
 	bsp_InitButton();
     i2c1Init(400000); 	//400KHZ
 	NRF24L01Int();		//NRF24L01 and SPI init
@@ -158,7 +136,7 @@ static void Init (void)
 ** output parameters:   none
 ** Returned value:      none
 *********************************************************************************************************/
-static void AccessSetMode(void)
+static void AccessSettingMode(void)
 {
 	uint8_t ii = ii;
 
@@ -197,8 +175,8 @@ static void AccessSetMode(void)
 #endif
 
 			//TODO:save one rule group data.including directoin and rotated angle.
-			DestRule[2][matchStage[2]][0] = matchedRotateAngle[2] >= 0 ? 1 : -1;
-			DestRule[2][matchStage[2]][1] = matchedRotateAngle[2];
+			DestRule[2][matchStage[2]-1][0] = matchedRotateAngle[2] >= 0 ? 1 : -1;
+			DestRule[2][matchStage[2]-1][1] = matchedRotateAngle[2];
 			ruleGroupNum = matchStage[2]++;
 			matchedRotateAngle[2] = 0;
 
@@ -227,8 +205,8 @@ static void AccessSetMode(void)
 	//save the last game group info if there is no rotate within ten seconds
 	if (matchedRotateAngle[2] > SET_MIN_ANGLE)
 	{
-		DestRule[2][matchStage[2]][0] = matchedRotateAngle[2] > 0 ? -1 : 1;
-		DestRule[2][matchStage[2]][1] = matchedRotateAngle[2];
+		DestRule[2][ruleGroupNum][0] = matchedRotateAngle[2] > 0 ? -1 : 1;
+		DestRule[2][ruleGroupNum][1] = matchedRotateAngle[2];
 		ruleGroupNum++;	
 	}
 
@@ -246,6 +224,103 @@ static void AccessSetMode(void)
 	//Delay 2s and soft-reset the system.
 	BspDelayMS(2000);
 	SoftReset();
+}
+
+/*********************************************************************************************************
+** Function name:       AccessNormalMode
+** Descriptions:        
+** input parameters:    none
+** output parameters:   none
+** Returned value:      none
+*********************************************************************************************************/
+static void AccessNormalMode(void)
+{
+	uint8_t i = i;
+
+	debug_printf("[%ldms] Enter into NORMAL_MODE !\n",bsp_GetRunTime());
+
+	bsp_StartTimer(1, 2000);
+
+	for(;;)
+	{						
+		HandleMPU6050Data2(mpuDat);
+#if 0
+		uart_printf(" Pitch=%04d\tRoll=%04d\tYaw=%04d\trunTime=%ldms\n", 
+	   		mpuDat[0].currentAngle, mpuDat[1].currentAngle, mpuDat[2].currentAngle, bsp_GetRunTime());
+#endif
+
+		if ((0 != mpuDat[2].rotateDirect) && (0 == matchStage[2])) 
+		{
+			matchStage[2] = 1;;	
+		}
+
+		if (0 != mpuDat[2].rotateDirect)  
+		{
+			bsp_StartTimer(1, 2000);	
+		}
+
+		if (1 == bsp_CheckTimer(1))
+		{
+			if ((matchedRotateAngle[2] >= DestRule[2][matchStage[2]-1][1]) &&
+				(matchedRotateAngle[2] <= DestRule[2][matchStage[2]-1][1] + COMPTB_ANGLE))
+			{
+#if CONF_NRF24L01_SND
+			gLen = sprintf((char*)buf, " z-Axis:stage<%02d>Pass!\n", matchStage[2]);
+			debug_printf((char*)buf);
+			NRFSndDate(buf, gLen);
+#else
+			debug_printf(" z-Axis:stage<%02d>Pass!\n", matchStage[2]);
+#endif		
+
+			matchStage[2]++;
+			}
+			else
+			{
+#if CONF_NRF24L01_SND
+					gLen = sprintf((char*)buf, " z-Axis:Stop=>[%d]\n", matchStage[2]);
+					uart_printf((char*)buf);
+					NRFSndDate(buf, gLen);
+#else
+					uart_printf(" z-Axis:Stop=>[%d]\n", matchStage[2]);
+#endif	
+				matchStage[2] = 0;				
+			}
+
+
+			//最后一个rule达到指定角度后的情况处理
+			if (matchStage[2] >= ruleGroupNum)
+			{
+				matchStage[2] = 0;
+				passFlag[2] = 1;	
+			}
+
+			matchedRotateAngle[2] = 0;
+
+		}//end:if (1 == bsp_CheckTimer(2))
+
+
+		for (i = 0; i < 3; i++)
+		{
+			if (passFlag[i] == 1)
+			{
+				passFlag[i] = 0;
+
+				gLen = sprintf((char*)buf, "\t[%d]-Axis Trigger A Signal !\n", i);
+				uart_printf((char*)buf);
+				NRFSndDate(buf, gLen);
+
+				for(;;)
+				{
+					bsp_BeepToggled();
+					BspDelayMS(50);	
+				}
+
+				//return 1;//stop the App !!!*************************
+			}		
+		}
+
+        BspDelayMS(SCAN_TIME);
+    }
 }
 
 /*********************************************************************************************************

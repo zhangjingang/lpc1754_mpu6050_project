@@ -33,7 +33,7 @@
 #define RETRY_SAVE_TIMES	2u 		//当存储失败时，尝试再次存储的次数
 
 //others
-#define SCAN_TIME			50u
+#define SCAN_TIME			10u
 #define OUTPUT_BUF			128u	//定义串口输出缓冲区大小
 
 //定义游戏使用的轴X，Y，Z，ALL

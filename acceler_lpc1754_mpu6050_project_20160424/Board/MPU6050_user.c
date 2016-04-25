@@ -335,6 +335,10 @@ void HandleMPU6050Data3(struct axis_attr *mpu6050dat)
 		}
 
 		//---启动规则---
+		if (matchStage[i] == 0)
+		{
+			matchStage[i] = 1;
+		}
 
 		//各个阶段的规则处理
 		{
@@ -381,6 +385,7 @@ void HandleMPU6050Data2(struct axis_attr *mpu6050dat)
 	uint8_t i;
 	int16_t tempAngle;
 
+
 	UpdateMPU6050Data(mpu6050dat);
 
 	//如果只检测Z(Yaw)轴，将i=2即可。注：由于X(Pitch)轴的角度范围是+-90。故当角度大于+-90度时计算有误。
@@ -407,22 +412,18 @@ void HandleMPU6050Data2(struct axis_attr *mpu6050dat)
 			goto end;	
 		}
 
-		//---匹配规则---
+//		//---启动规则---
+//		if (matchStage[i] == 0)
+//		{
+//			matchStage[i] = 1;
+//		}
 
-		//+匹配规则启动的条件
-		if (matchStage[i] == 0)
+		//各个阶段的规则处理
 		{
-			DestRule[i][matchStage[i]][0] = mpu6050dat[i].rotateDirect;
-			matchStage[i] = 1;	 
-		}
+			tempAngle = CalcIntervalAngle(mpu6050dat[i].currentAngle, mpu6050dat[i].lastAngle);
 
-		//+各个阶段的规则匹配处理
-		if (matchStage[i] > 0)
-		{
-			if (mpu6050dat[i].rotateDirect == DestRule[i][matchStage[i]-1][0])//与规则同向旋转情况处理
-			{
-				tempAngle = CalcIntervalAngle(mpu6050dat[i].currentAngle, mpu6050dat[i].lastAngle);
-				matchedRotateAngle[i] += ABS(tempAngle);
+			matchedRotateAngle[i] += tempAngle;	
+
 
 #if CONF_NRF24L01_SND
 				gLen = sprintf((char*)buf, " [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
@@ -431,56 +432,13 @@ void HandleMPU6050Data2(struct axis_attr *mpu6050dat)
 #else
 				debug_printf(" [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
 #endif
-				if ((matchedRotateAngle[i] != 0 ) && (matchedRotateAngle[i] % 90 == 0))//beep every rotate 90 degree
-				{
-					bsp_BeepOn();
-					BspDelayMS(100);
-					bsp_BeepOff();
-				} 	
-			}
-			else //与规则反向旋转情况处理
-			{
-				if (matchedRotateAngle[i] < SET_MIN_ANGLE)//do not meet the condition
-				{
-//					if (matchStage[i] == 1)
-//					{
-//						matchStage[i] = 0;
-//						matchedRotateAngle[i] = 0;
-//					}
-//					else
-//					{
-//						mpu6050dat[i].rotateDirect = mpu6050dat[i].rotateDirect > 0 ? -1 : 1;
-//						matchedRotateAngle[i] = DestRule[i][matchStage[i]-1-1][1] - matchedRotateAngle[i] + 
-//							ABS(CalIntervalAngle(mpu6050dat[i].currentAngle, mpu6050dat[i].lastAngle));						
-//					}
-				}
-				else	
-				{
-#if CONF_NRF24L01_SND
-				gLen = sprintf((char*)buf, " [%d]-Axis:stage<%02d> Over!\n", i, matchStage[i]);
-				debug_printf((char*)buf);
-				NRFSndDate(buf, gLen);
-#else
-				debug_printf(" [%d]-Axis:stage<%02d> Over!\n", i, matchStage[i]);
-#endif
-					//save current group game rule
-					DestRule[i][matchStage[i]-1][0] = mpu6050dat[i].rotateDirect > 0 ? -1 : 1;
-					DestRule[i][matchStage[i]-1][1] = matchedRotateAngle[i];
-					ruleGroupNum = matchStage[i]++;
-
-					//set the direction of next group game rule, and clear the rotate angle. 
-					DestRule[i][matchStage[i]-1][0] = mpu6050dat[i].rotateDirect;
-					matchedRotateAngle[i] = ABS(CalcIntervalAngle(mpu6050dat[i].currentAngle, mpu6050dat[i].lastAngle));	 				
-				}
-			}
-		}
-
-		//+最后一个rule达到指定角度后的情况处理
-		if (matchStage[i] >= RULE_NUM_MAX)
-		{
-			debug_printf(" ERROR !!! game_rule_len > %d, Saving first %d data.\n", RULE_NUM_MAX, RULE_NUM_MAX);	
-			matchStage[i] = 0;
-			matchedRotateAngle[i] = 0;
+//			if ((matchedRotateAngle[i] != 0 ) && (ABS(matchedRotateAngle[i]) % 90 == 0))//beep every rotate 90 degree
+//			{
+//				uart_printf("beep-on  100ms!\n");
+//				bsp_BeepOn();
+//				BspDelayMS(100);
+//				bsp_BeepOff();
+//			} 
 		}
 
    end:

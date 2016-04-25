@@ -234,7 +234,7 @@
         <tRbox>1</tRbox>
         <sRunDeb>0</sRunDeb>
         <sLrtime>0</sLrtime>
-        <nTsel>8</nTsel>
+        <nTsel>7</nTsel>
         <sDll></sDll>
         <sDllPa></sDllPa>
         <sDlgDll></sDlgDll>
@@ -302,7 +302,7 @@
 
   <Group>
     <GroupName>CMSIS Files</GroupName>
-    <tvExp>0</tvExp>
+    <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <File>
@@ -358,12 +358,12 @@
       <GroupNumber>2</GroupNumber>
       <FileNumber>4</FileNumber>
       <FileType>1</FileType>
-      <tvExp>1</tvExp>
+      <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>79</ColumnNumber>
+      <ColumnNumber>73</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>168</TopLine>
-      <CurrentLine>184</CurrentLine>
+      <TopLine>254</TopLine>
+      <CurrentLine>283</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\USER_CODE\main.c</PathWithFileName>
       <FilenameWithoutPath>main.c</FilenameWithoutPath>
@@ -414,7 +414,7 @@
 
   <Group>
     <GroupName>Board</GroupName>
-    <tvExp>0</tvExp>
+    <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <File>
@@ -479,10 +479,10 @@
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>59</ColumnNumber>
+      <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>325</TopLine>
-      <CurrentLine>325</CurrentLine>
+      <TopLine>511</TopLine>
+      <CurrentLine>535</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\Board\MPU6050_user.c</PathWithFileName>
       <FilenameWithoutPath>MPU6050_user.c</FilenameWithoutPath>
@@ -546,9 +546,9 @@
   </Group>
 
   <AlienFiles>
-    <PathWithFilename>C:\Users\newuser\Desktop\LPC1754_MPU6050\Project-Codes\acceler_lpc1754_mpu6050-20160422\acceler_lpc1754_mpu6050_project\USER_CODE\sys_conf.h</PathWithFilename>
-    <TopLine>24</TopLine>
-    <CurrentLine>36</CurrentLine>
+    <PathWithFilename>D:\Desktop\acceler_lpc1754_mpu6050_project_2\USER_CODE\sys_conf.h</PathWithFilename>
+    <TopLine>17</TopLine>
+    <CurrentLine>26</CurrentLine>
     <Constant>0</Constant>
     <WindowPosition>
       <length>0</length>
@@ -576,25 +576,31 @@
     <ActiveMDIGroup>0</ActiveMDIGroup>
     <MDIGroup>
       <Size>100</Size>
-      <ActiveTab>0</ActiveTab>
+      <ActiveTab>3</ActiveTab>
       <Documents>
         <Doc>
-          <Name>.\USER_CODE\main.c</Name>
-          <ColumnNumber>79</ColumnNumber>
-          <TopLine>168</TopLine>
-          <CurrentLine>184</CurrentLine>
+          <Name>.\USER_CODE\sys_conf.h</Name>
+          <ColumnNumber>20</ColumnNumber>
+          <TopLine>17</TopLine>
+          <CurrentLine>26</CurrentLine>
         </Doc>
         <Doc>
           <Name>.\Board\MPU6050_user.c</Name>
-          <ColumnNumber>59</ColumnNumber>
-          <TopLine>325</TopLine>
-          <CurrentLine>325</CurrentLine>
+          <ColumnNumber>0</ColumnNumber>
+          <TopLine>511</TopLine>
+          <CurrentLine>535</CurrentLine>
         </Doc>
         <Doc>
-          <Name>.\USER_CODE\sys_conf.h</Name>
-          <ColumnNumber>8</ColumnNumber>
-          <TopLine>24</TopLine>
-          <CurrentLine>36</CurrentLine>
+          <Name>.\USER_CODE\main.c</Name>
+          <ColumnNumber>73</ColumnNumber>
+          <TopLine>254</TopLine>
+          <CurrentLine>283</CurrentLine>
+        </Doc>
+        <Doc>
+          <Name>.\USER_CODE\record.txt</Name>
+          <ColumnNumber>139</ColumnNumber>
+          <TopLine>37</TopLine>
+          <CurrentLine>87</CurrentLine>
         </Doc>
       </Documents>
     </MDIGroup>
