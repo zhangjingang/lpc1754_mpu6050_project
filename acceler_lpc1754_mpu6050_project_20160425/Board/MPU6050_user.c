@@ -6,7 +6,6 @@
 #include <stdio.h>		//sprintf
 #include "UART0.h"
 #include "bsp_timer.h"
-#include "bsp_gpioout.h"
 #include "NRF24L01.h"
 #include "sys_conf.h"
 
@@ -296,84 +295,6 @@ static short CalcIntervalAngle(short current_angle, short last_angle)
 }
 
 /*********************************************************************************************************
-** Function name:       HandleMPU6050Data3
-** Descriptions:        another method used in set-mode
-** input parameters:    axis_attr *mpu6050dat
-** output parameters:   none
-** Returned value:      none
-*********************************************************************************************************/
-void HandleMPU6050Data3(struct axis_attr *mpu6050dat)
-{
-	uint8_t i;
-	int16_t tempAngle;
-
-
-	UpdateMPU6050Data(mpu6050dat);
-
-	//如果只检测Z(Yaw)轴，将i=2即可。注：由于X(Pitch)轴的角度范围是+-90。故当角度大于+-90度时计算有误。
-	for (i = 2; i < 3; i++)
-	{
-		//计算角速度：度/秒
-		mpu6050dat[i].rotateSpeed = ABS(CalcIntervalAngle(mpu6050dat[i].currentAngle, mpu6050dat[i].lastAngle)) * 1000 /
-			(mpu6050dat[i].currentTimestamp - mpu6050dat[i].lastTimestamp);
-#if 0
-		debug_printf(" rotateSpeed:<%06d>\n", mpu6050dat[i].rotateSpeed);
-#endif
-		//判断正反转
-		if (mpu6050dat[i].currentAngle > mpu6050dat[i].lastAngle) 
-		{
-		 	mpu6050dat[i].rotateDirect = 1;
-		}
-		else if (mpu6050dat[i].currentAngle < mpu6050dat[i].lastAngle)
-		{
-		 	mpu6050dat[i].rotateDirect = -1;
-		}
-		else 
-		{
-		 	mpu6050dat[i].rotateDirect = 0;	
-			goto end;	
-		}
-
-		//---启动规则---
-		if (matchStage[i] == 0)
-		{
-			matchStage[i] = 1;
-		}
-
-		//各个阶段的规则处理
-		{
-			tempAngle = CalcIntervalAngle(mpu6050dat[i].currentAngle, mpu6050dat[i].lastAngle);
-
-			matchedRotateAngle[i] += tempAngle;	
-
-
-#if CONF_NRF24L01_SND
-				gLen = sprintf((char*)buf, " [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
-				debug_printf((char*)buf);
-				NRFSndDate(buf, gLen);
-#else
-				debug_printf(" [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
-#endif
-			if ((matchedRotateAngle[i] != 0 ) && (ABS(matchedRotateAngle[i]) % 90 == 0))//beep every rotate 90 degree
-			{
-				uart_printf("beep-on  100ms!\n");
-				bsp_BeepOn();
-				BspDelayMS(100);
-				bsp_BeepOff();
-			} 
-		}
-
-
-   end:
-		//保存当前状态(到last变量中)
-		mpu6050dat[i].lastAngle = mpu6050dat[i].currentAngle;
-		mpu6050dat[i].lastTimestamp = mpu6050dat[i].currentTimestamp;
-	}
-		
-}
-
-
-/*********************************************************************************************************
 ** Function name:       HandleMPU6050Data2
 ** Descriptions:        used in set-mode
 ** input parameters:    axis_attr *mpu6050dat
@@ -385,7 +306,6 @@ void HandleMPU6050Data2(struct axis_attr *mpu6050dat)
 	uint8_t i;
 	int16_t tempAngle;
 
-
 	UpdateMPU6050Data(mpu6050dat);
 
 	//如果只检测Z(Yaw)轴，将i=2即可。注：由于X(Pitch)轴的角度范围是+-90。故当角度大于+-90度时计算有误。
@@ -397,6 +317,7 @@ void HandleMPU6050Data2(struct axis_attr *mpu6050dat)
 #if 0
 		debug_printf(" rotateSpeed:<%06d>\n", mpu6050dat[i].rotateSpeed);
 #endif
+
 		//判断正反转
 		if (mpu6050dat[i].currentAngle > mpu6050dat[i].lastAngle) 
 		{
@@ -412,11 +333,6 @@ void HandleMPU6050Data2(struct axis_attr *mpu6050dat)
 			goto end;	
 		}
 
-//		//---启动规则---
-//		if (matchStage[i] == 0)
-//		{
-//			matchStage[i] = 1;
-//		}
 
 		//各个阶段的规则处理
 		{
@@ -426,19 +342,13 @@ void HandleMPU6050Data2(struct axis_attr *mpu6050dat)
 
 
 #if CONF_NRF24L01_SND
-				gLen = sprintf((char*)buf, " [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
-				debug_printf((char*)buf);
-				NRFSndDate(buf, gLen);
+			gLen = sprintf((char*)buf, " [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
+			debug_printf((char*)buf);
+			NRFSndDate(buf, gLen);
 #else
-				debug_printf(" [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
+			debug_printf(" [%d]-Axis:matchStage<%d>, RotateAngle:<%04d> \n", i, matchStage[i], matchedRotateAngle[i]);
 #endif
-//			if ((matchedRotateAngle[i] != 0 ) && (ABS(matchedRotateAngle[i]) % 90 == 0))//beep every rotate 90 degree
-//			{
-//				uart_printf("beep-on  100ms!\n");
-//				bsp_BeepOn();
-//				BspDelayMS(100);
-//				bsp_BeepOff();
-//			} 
+
 		}
 
    end:
@@ -549,8 +459,7 @@ void HandleMPU6050Data(struct axis_attr *mpu6050dat)
 		if ((matchStage[i] >= ruleGroupNum) && (matchedRotateAngle[i] >= DestRule[i][matchStage[i]-1][1]))
 		{
 			matchStage[i] = 0;
-			matchedRotateAngle[i] = 0;
-			passFlag[i] = 1;	
+			matchedRotateAngle[i] = 0;	
 		}
 
    end:

@@ -19,7 +19,6 @@
  !!! Global Variables
 *********************************************************************************************************/
 struct axis_attr mpuDat[3];//[0],[1],[2] means X(Pitch), Y(Roll), Z(Yaw) axis separately
-uint8_t passFlag[3];
 uint8_t buf[OUTPUT_BUF];	//temporary output buffer	
 uint8_t gLen;
 int16_t matchedRotateAngle[3];//current matched angle of each stage of each asix
@@ -40,8 +39,10 @@ __align(4) static int16_t tmpSectorData[WRITE_LENGTH];//__align(4) means data in
 Inner function declaration
 *********************************************************************************************************/
 static void Init(void);
+static uint8_t isKeyLongSet(void);
 static void AccessSettingMode(void);
 static void AccessNormalMode(void);
+static void BeepInterval(uint8_t count, uint16_t time_ms);
 static void SaveGameRule(int16_t *pdat, uint16_t len);
 static void ReadGameRule(int16_t *pdat, uint16_t *len);
 
@@ -54,47 +55,38 @@ static void ReadGameRule(int16_t *pdat, uint16_t *len);
 *********************************************************************************************************/
 int main (void)
 {
-	uint8_t i = i;
 	uint8_t len = len;
 
 	Init();
 
 #if CONF_NRF24L01_SND
 
-	// setting-mode
-	//check whether it entering into set-mode: generate key-long-set within 5 seconds
-	bsp_StartTimer(1, 5000);
-	while (0 == bsp_CheckTimer(1))
-	{	
-		if (bsp_GetKey() == KEY_LONG_SET)//check key-long-set 
-		{
-			for (i = 0; i < 6; i++)//beep-on 3 times with each 200ms
-			{
-				bsp_BeepToggled();
-				BspDelayMS(200);
-			}
-				
-			AccessSettingMode();// !!!never return.
-		}
-			
-		CPU_IDLE();	//let CPU enter into low power mode	
+	if (isKeyLongSet())//blocked for 5 seconds if no key-long-set
+	{
+		BeepInterval(3, 200);
+		AccessSettingMode();//enter into setting mode
 	}
-
-   //normal-mode
-	AccessNormalMode();
-
+	else
+	{
+		BeepInterval(1, 1000);
+		AccessNormalMode();//enter into normal mode
+	}
 
 #else
 
 	//NRF24L01 receive data
 	for(;;)
 	{
+		//receiving data and printing to uart0
 		NRFSetRXMode();
 		len = NRFGetData(buf);
         if (len > 0)
 		{
 			uart0SendStr(buf, len);
 		}
+
+		//let CPU enter into low power mode		
+		CPU_IDLE();
 	}
 #endif
 
@@ -115,22 +107,67 @@ static void Init (void)
 	uart0Init();    	//115200 8n1
 	uart_printf(MODULE_ROLE);
 	uart_printf("SystemFrequency=[%dHz]  Init System ...\n", SystemFrequency);
-	bsp_InitBeep();
 	bsp_InitButton();
     i2c1Init(400000); 	//400KHZ
 	NRF24L01Int();		//NRF24L01 and SPI init
 	PT2260Init();
 	MPU6050Init();		//MPU6050 init,runtime:1530ms
 	ReadGameRule(&(DestRule[2][0][0]), &ruleGroupNum);//read game rules from flash.
+#if	ENABLE_BEEP
+	bsp_InitBeep();
+#endif
 	uart_printf("System Ready!\n");
+}
 
-	bsp_BeepOn();
-	BspDelayMS(1000);
+/*********************************************************************************************************
+** Function name:       isKeyLongSet
+** Descriptions:        check whether it entering into setitng mode: generate key-long-set within 5 seconds
+** input parameters:    none
+** output parameters:   none
+** Returned value:      1: generate key-long-set		0: no key-long-set
+*********************************************************************************************************/
+static uint8_t isKeyLongSet(void)
+{
+	debug_printf("[%ldms] Checking isKeyLongSet for 5 seconds...\n",bsp_GetRunTime());
+
+	bsp_StartTimer(1, 3000);
+	while (0 == bsp_CheckTimer(1))
+	{	
+		if (bsp_GetKey() == KEY_LONG_SET)//check key-long-set 
+		{							
+			return 1;
+		}
+
+		//let CPU enter into low power mode		
+		CPU_IDLE();	
+	}
+
+	return 0;
+}
+
+/*********************************************************************************************************
+** Function name:       BeepInterval
+** Descriptions:        
+** input parameters:    count: beep on times	time_ms: beep on time
+** output parameters:   none
+** Returned value:      none
+*********************************************************************************************************/
+static void BeepInterval(uint8_t count, uint16_t time_ms)
+{
+	uint8_t i;
+
+	uart_printf("beep-on %d times with each %dms!\n", count, time_ms);
+
+	for (i = 0; i < 2*count; i++) 
+	{
+		bsp_BeepToggled();
+		BspDelayMS(time_ms);
+	}
 	bsp_BeepOff();
 }
 
 /*********************************************************************************************************
-** Function name:       AccessSetMode
+** Function name:       AccessSettingMode
 ** Descriptions:        
 ** input parameters:    none
 ** output parameters:   none
@@ -138,7 +175,8 @@ static void Init (void)
 *********************************************************************************************************/
 static void AccessSettingMode(void)
 {
-	uint8_t ii = ii;
+	uint8_t i = i;
+	int16_t	tmpAngle = 0;
 
 	debug_printf("[%ldms] Enter into SET_MODE !\n",bsp_GetRunTime());
 
@@ -147,9 +185,23 @@ static void AccessSettingMode(void)
 
 	while (0 == bsp_CheckTimer(1))
 	{
-		HandleMPU6050Data3(mpuDat); //rotate record and beep every 90 degree.
+		HandleMPU6050Data2(mpuDat); //recording the rotation
 
-		if (0 != mpuDat[2].rotateDirect) //if angle changed, restart timer 1 and 2
+		if (0 == matchStage[2])
+		{
+			matchStage[2] = 1;;	
+		}
+
+		//beep-on 100s every 90 degree. tmpAngle used for avoid re-beeping 
+		if ((matchedRotateAngle[2] != 0 ) && (tmpAngle != matchedRotateAngle[2]) && 
+			(ABS(matchedRotateAngle[2]) % 90 == 0))
+		{
+			BeepInterval(1, 100);
+			tmpAngle = matchedRotateAngle[2];
+		} 
+
+		//if angle changed, restart timer 1 and 2
+		if (0 != mpuDat[2].rotateDirect) 
 		{
 			bsp_StartTimer(1, 10000);	
 			bsp_StartTimer(2, 2000);				
@@ -162,7 +214,7 @@ static void AccessSettingMode(void)
 			if (ABS(matchedRotateAngle[2]) <= SET_MIN_ANGLE)//BUG: matchedRotateAngle[2] maybe nagetive value
 			{
 				bsp_StartTimer(2, 2000);
-				debug_printf("No rotatioin in 2 seconds.\n"); 
+				debug_printf("No rotatioin in 2 seconds...\n"); 
 				continue;
 			}
 
@@ -174,33 +226,35 @@ static void AccessSettingMode(void)
 			debug_printf("Z-Axis:stage<%02d> Over, Angle:<%04d>!\n", matchStage[2], matchedRotateAngle[2]);
 #endif
 
-			//TODO:save one rule group data.including directoin and rotated angle.
-			DestRule[2][matchStage[2]-1][0] = matchedRotateAngle[2] >= 0 ? 1 : -1;
-			DestRule[2][matchStage[2]-1][1] = matchedRotateAngle[2];
-			ruleGroupNum = matchStage[2]++;
-			matchedRotateAngle[2] = 0;
-
-
-			//最后一个rule达到指定角度后的情况处理
-			if (matchStage[2] >= RULE_NUM_MAX)
-			{
-				debug_printf(" ERROR !!! game_rule_len > %d, Saving first %d data.\n", RULE_NUM_MAX, RULE_NUM_MAX);	
-				matchStage[2] = 0;
+			//saveing one rule group data.including directoin and rotated angle.
+			{		
+				DestRule[2][matchStage[2]-1][0] = matchedRotateAngle[2] >= 0 ? 1 : -1;
+				DestRule[2][matchStage[2]-1][1] = matchedRotateAngle[2];
+				ruleGroupNum = matchStage[2]++;
 				matchedRotateAngle[2] = 0;
 			}
 
 			//beep-on 3 times with each 50ms
-			uart_printf("beep-on 3 times with each 50ms!\n");
-		 	for (ii = 0; ii < 6; ii++) 
+			BeepInterval(3, 50);
+
+			//handling the condition of the storing arrays being out of border.
+			if (matchStage[2] > RULE_NUM_MAX)
 			{
-				bsp_BeepToggled();
-				BspDelayMS(50);
+				debug_printf(" NOTE!!! Game_rule_len up to the MAX %d, Now saving data to flash and rebooting...\n", RULE_NUM_MAX);	
+				matchStage[2] = 0;
+				matchedRotateAngle[2] = 0;
+
+				//beep-on 3 seconds and exit
+				BeepInterval(1, 5000);
+
+				break;
 			}
-		}//end:if (1 == bsp_CheckTimer(2))
+
+		}//end:if(1 == bsp_CheckTimer(2))
 
 		BspDelayMS(SCAN_TIME);
 
-	}//end:while (0 == bsp_CheckTimer(1))
+	}//end:while(0 == bsp_CheckTimer(1))
 
 	//save the last game group info if there is no rotate within ten seconds
 	if (matchedRotateAngle[2] > SET_MIN_ANGLE)
@@ -214,12 +268,7 @@ static void AccessSettingMode(void)
 	SaveGameRule(&(DestRule[2][0][0]), ruleGroupNum);
 
 	//beep-on 3 times with each 200ms,indicating save data to flash success
-	uart_printf("beep-on 3 times with each 200ms!\n");
- 	for (ii = 0; ii < 6; ii++) 
-	{
-		bsp_BeepToggled();
-		BspDelayMS(200);
-	}
+	BeepInterval(3, 200);
 
 	//Delay 2s and soft-reset the system.
 	BspDelayMS(2000);
@@ -235,15 +284,13 @@ static void AccessSettingMode(void)
 *********************************************************************************************************/
 static void AccessNormalMode(void)
 {
-	uint8_t i = i;
-
 	debug_printf("[%ldms] Enter into NORMAL_MODE !\n",bsp_GetRunTime());
 
 	bsp_StartTimer(1, 2000);
 
 	for(;;)
 	{						
-		HandleMPU6050Data2(mpuDat);
+		HandleMPU6050Data2(mpuDat);//recording the rotation
 #if 0
 		uart_printf(" Pitch=%04d\tRoll=%04d\tYaw=%04d\trunTime=%ldms\n", 
 	   		mpuDat[0].currentAngle, mpuDat[1].currentAngle, mpuDat[2].currentAngle, bsp_GetRunTime());
@@ -261,19 +308,25 @@ static void AccessNormalMode(void)
 
 		if (1 == bsp_CheckTimer(1))
 		{
-			if ((matchedRotateAngle[2] >= DestRule[2][matchStage[2]-1][1]) &&
+			//assert:	da-cp <= ma <= da + cp	
+			if ((matchedRotateAngle[2] >= DestRule[2][matchStage[2]-1][1] - COMPTB_ANGLE) &&
 				(matchedRotateAngle[2] <= DestRule[2][matchStage[2]-1][1] + COMPTB_ANGLE))
 			{
-#if CONF_NRF24L01_SND
-			gLen = sprintf((char*)buf, " z-Axis:stage<%02d>Pass!\n", matchStage[2]);
-			debug_printf((char*)buf);
-			NRFSndDate(buf, gLen);
-#else
-			debug_printf(" z-Axis:stage<%02d>Pass!\n", matchStage[2]);
-#endif		
 
-			matchStage[2]++;
+#if CONF_NRF24L01_SND
+				gLen = sprintf((char*)buf, " z-Axis:stage<%02d>Pass!\n", matchStage[2]);
+				debug_printf((char*)buf);
+				NRFSndDate(buf, gLen);
+#else
+				debug_printf(" z-Axis:stage<%02d>Pass!\n", matchStage[2]);
+#endif		
+	
+				//beep-on stage times with each 40ms
+				BeepInterval(matchStage[2], 40);
+	
+				matchStage[2]++;
 			}
+
 			else
 			{
 #if CONF_NRF24L01_SND
@@ -287,37 +340,25 @@ static void AccessNormalMode(void)
 			}
 
 
-			//最后一个rule达到指定角度后的情况处理
-			if (matchStage[2] >= ruleGroupNum)
+			//Handling the condition of pass all the game rules
+			if (matchStage[2] > ruleGroupNum)
 			{
 				matchStage[2] = 0;
-				passFlag[2] = 1;	
+				matchedRotateAngle[2] = 0;
+
+				gLen = sprintf((char*)buf, " z-Axis Trigger A Signal !\n");
+				uart_printf((char*)buf);
+				NRFSndDate(buf, gLen);
+
+				//beep-on 250 times with each 20ms
+				BeepInterval(250, 20);
+
+				while(1);//stop the App !!!*************************	
 			}
 
 			matchedRotateAngle[2] = 0;
 
 		}//end:if (1 == bsp_CheckTimer(2))
-
-
-		for (i = 0; i < 3; i++)
-		{
-			if (passFlag[i] == 1)
-			{
-				passFlag[i] = 0;
-
-				gLen = sprintf((char*)buf, "\t[%d]-Axis Trigger A Signal !\n", i);
-				uart_printf((char*)buf);
-				NRFSndDate(buf, gLen);
-
-				for(;;)
-				{
-					bsp_BeepToggled();
-					BspDelayMS(50);	
-				}
-
-				//return 1;//stop the App !!!*************************
-			}		
-		}
 
         BspDelayMS(SCAN_TIME);
     }
@@ -343,7 +384,7 @@ static void SaveGameRule(int16_t *pdat, uint16_t groupNum)
 	{
 		for (j = 0; j < 2; j++)
 		{
-			debug_printf("Sav_Dat[%d][%d]=%d \n", i, j, pdat[2*i+j]);//print out;				
+			debug_printf(" Sav_Dat[%d][%d]=%d \n", i, j, pdat[2*i+j]);//print out;				
 		}
 	}
 #endif

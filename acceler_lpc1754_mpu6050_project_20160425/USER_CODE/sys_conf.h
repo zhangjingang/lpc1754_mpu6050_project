@@ -14,7 +14,7 @@
 //#define	DETECT_VIBRATE_EN
 
 //设置NRL24L01为“SND”端 OR “RCV”端
-#define CONF_NRF24L01_SND	1u	//SND：1	RCV：0
+#define CONF_NRF24L01_SND	1	//SND：1	RCV：0
 #if CONF_NRF24L01_SND
 #define MODULE_ROLE		"This is CONF_NRF24L01 send module!  "
 #else
@@ -23,7 +23,7 @@
 
 //游戏规则设定
 #define RULE_NUM_MAX		10u		//定义规则组数
-#define COMPTB_ANGLE 		10u		//定义兼容度数
+#define COMPTB_ANGLE 		5u		//定义兼容度数
 #define SET_MIN_ANGLE		8u		//设置模式允许的最小角度
 
 //Data storing location	of flash
@@ -35,6 +35,7 @@
 //others
 #define SCAN_TIME			10u
 #define OUTPUT_BUF			128u	//定义串口输出缓冲区大小
+#define ENABLE_BEEP			1		//0:disable beep	1:enable beep
 
 //定义游戏使用的轴X，Y，Z，ALL
 /*

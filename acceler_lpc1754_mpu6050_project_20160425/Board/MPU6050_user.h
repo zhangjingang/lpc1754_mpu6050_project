@@ -22,7 +22,6 @@ struct axis_attr
 
 //!!! Global variables, used in main.c and mpu6050_user.c
 extern struct axis_attr mpuDat[3];//[0],[1],[2]·Ö±ð´úÂëX(Pitch)£¬Y(Roll)£¬Z(Yaw)Öá
-extern uint8_t passFlag[3];
 extern uint8_t buf[OUTPUT_BUF];
 extern uint8_t gLen; 
 extern int16_t DestRule[3][RULE_NUM_MAX][2];
@@ -34,7 +33,6 @@ extern uint8_t matchStage[3];
 void MPU6050Init(void);
 void HandleMPU6050Data(struct axis_attr *mpu6050dat);
 void HandleMPU6050Data2(struct axis_attr *mpu6050dat);
-void HandleMPU6050Data3(struct axis_attr *mpu6050dat);
 void SoftReset(void);
 
 #endif

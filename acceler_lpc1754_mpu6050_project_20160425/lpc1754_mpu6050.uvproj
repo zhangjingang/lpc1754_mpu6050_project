@@ -412,9 +412,9 @@
               <FilePath>.\USER_CODE\main.c</FilePath>
             </File>
             <File>
-              <FileName>record.txt</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\USER_CODE\record.txt</FilePath>
+              <FileName>IAP.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Board\IAP.c</FilePath>
             </File>
             <File>
               <FileName>bsp_timer.c</FileName>
@@ -422,9 +422,9 @@
               <FilePath>.\Board\bsp_timer.c</FilePath>
             </File>
             <File>
-              <FileName>IAP.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Board\IAP.c</FilePath>
+              <FileName>record.txt</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\USER_CODE\record.txt</FilePath>
             </File>
           </Files>
         </Group>
@@ -610,7 +610,7 @@
             <RestoreToolbox>1</RestoreToolbox>
           </Target>
           <RunDebugAfterBuild>0</RunDebugAfterBuild>
-          <TargetSelection>7</TargetSelection>
+          <TargetSelection>8</TargetSelection>
           <SimDlls>
             <CpuDll></CpuDll>
             <CpuDllArguments></CpuDllArguments>
@@ -886,9 +886,9 @@
               <FilePath>.\USER_CODE\main.c</FilePath>
             </File>
             <File>
-              <FileName>record.txt</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\USER_CODE\record.txt</FilePath>
+              <FileName>IAP.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Board\IAP.c</FilePath>
             </File>
             <File>
               <FileName>bsp_timer.c</FileName>
@@ -896,9 +896,9 @@
               <FilePath>.\Board\bsp_timer.c</FilePath>
             </File>
             <File>
-              <FileName>IAP.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Board\IAP.c</FilePath>
+              <FileName>record.txt</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\USER_CODE\record.txt</FilePath>
             </File>
           </Files>
         </Group>
